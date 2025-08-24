@@ -1,66 +1,49 @@
 from contextlib import asynccontextmanager
-from typing import List
+from typing import AsyncGenerator, List
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import crud
-import models
 import schemas
-from database import engine, get_db
+from database import Base, engine, get_db
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
     yield
 
 
 app = FastAPI(title="Кулинарная книга API", lifespan=lifespan)
 
 
-@app.post("/recipes", response_model=schemas.RecipeDetail, summary="Создать рецепт")
+@app.post("/recipes", response_model=schemas.RecipeDetail)
 async def create_recipe(
     recipe: schemas.RecipeCreate, db: AsyncSession = Depends(get_db)
-):
+) -> schemas.RecipeDetail:
     db_recipe = await crud.create_recipe(db, recipe)
-
-    return schemas.RecipeDetail(
-        id=db_recipe.id,
-        title=db_recipe.title,
-        cooking_time=db_recipe.cooking_time,
-        views=db_recipe.views,
-        ingredients=db_recipe.ingredients.split(","),
-        description=db_recipe.description,
-    )
+    return schemas.RecipeDetail.from_orm(db_recipe)
 
 
-@app.get("/recipes", response_model=List[schemas.RecipeRead], summary="Список рецептов")
-async def read_recipes(db: AsyncSession = Depends(get_db)):
-    return await crud.get_recipes(db)
+@app.get("/recipes", response_model=List[schemas.RecipeRead])
+async def read_recipes(db: AsyncSession = Depends(get_db)) -> List[schemas.RecipeRead]:
+    recipes = await crud.get_recipes(db)
+    return [schemas.RecipeRead.from_orm(r) for r in recipes]
 
 
-@app.get(
-    "/recipes/{recipe_id}",
-    response_model=schemas.RecipeDetail,
-    summary="Детали рецепта",
-)
-async def read_recipe(recipe_id: int, db: AsyncSession = Depends(get_db)):
+@app.get("/recipes/{recipe_id}", response_model=schemas.RecipeDetail)
+async def read_recipe(
+    recipe_id: int, db: AsyncSession = Depends(get_db)
+) -> schemas.RecipeDetail:
     recipe = await crud.get_recipe_by_id(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
-    return schemas.RecipeDetail(
-        id=recipe.id,
-        title=recipe.title,
-        cooking_time=recipe.cooking_time,
-        views=recipe.views,
-        ingredients=recipe.ingredients.split(","),
-        description=recipe.description,
-    )
+    return schemas.RecipeDetail.from_orm(recipe)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

@@ -1,11 +1,10 @@
 fastapi
 uvicorn[standard]
+sqlalchemy>=2.0
+aiosqlite
 httpx
 pytest
 pytest-asyncio
-flake8
-black
-isort
 mypy
-sqlalchemy
-psycopg2-binary
+flake8
+asgi-lifespan
