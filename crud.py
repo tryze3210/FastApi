@@ -1,7 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from models import Recipe
 from schemas import RecipeCreate
+
 
 async def create_recipe(db: AsyncSession, recipe: RecipeCreate):
     db_recipe = Recipe(
@@ -15,11 +17,13 @@ async def create_recipe(db: AsyncSession, recipe: RecipeCreate):
     await db.refresh(db_recipe)
     return db_recipe
 
+
 async def get_recipes(db: AsyncSession):
     result = await db.execute(
         select(Recipe).order_by(Recipe.views.desc(), Recipe.cooking_time.asc())
     )
     return result.scalars().all()
+
 
 async def get_recipe_by_id(db: AsyncSession, recipe_id: int):
     result = await db.execute(select(Recipe).where(Recipe.id == recipe_id))

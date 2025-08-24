@@ -1,9 +1,10 @@
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from httpx import ASGITransport
-from main import app
+from httpx import ASGITransport, AsyncClient
+
 from database import Base, engine
+from main import app
+
 
 @pytest_asyncio.fixture(scope="module")
 async def async_client():
@@ -15,13 +16,14 @@ async def async_client():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
+
 @pytest.mark.asyncio
 async def test_create_read_recipe(async_client):
     new_recipe = {
         "title": "Омлет",
         "cooking_time": 10,
         "ingredients": ["Яйца", "Молоко", "Соль"],
-        "description": "Быстрый и вкусный омлет."
+        "description": "Быстрый и вкусный омлет.",
     }
 
     response = await async_client.post("/recipes", json=new_recipe)

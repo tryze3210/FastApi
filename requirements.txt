@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+httpx
+pytest
+pytest-asyncio
+flake8
+black
+isort
+mypy
+sqlalchemy
+psycopg2-binary
